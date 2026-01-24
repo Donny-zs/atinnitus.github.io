@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Atinnitus</title>
+<style>
+:root {
+  --bg-color: #fffdf5;
+  --btn-color: #ff8c42;
+  --slider-color: #1e90ff;
+  --text-color: #333;
+  --border-color: #ddd;
+  --disabled-color: #ccc;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.theme-dark {
+  --bg-color: #50504d;
+  --btn-color: #ff8c42;
+  --slider-color: #42a5f5;
+  --text-color: #e9e9e9;
+  --border-color: #99eee7;
+  --disabled-color: #666;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  line-height: 1.6;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.wrapper {
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 15px;
+  max-width: 850px;
+  margin: 0 auto;
+  box-shadow: var(--shadow);
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.section {
+  margin-bottom: 30px;
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.volume-control {
+  position: relative;
+  margin: 20px 0;
+  padding: 0;
+  background: linear-gradient(
+    to right,
+    #4eece4, #4CAF50, #8BC34A, #FFEB3B, #FF9800, #F44336, #D32F2F
+  );
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.volume-control input[type="range"] {
+  width: 100%;
+  height: 10px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+.volume-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--btn-color);
+  cursor: pointer;
+}
+
+.value-display {
+  margin: 10px 0;
+  font-size: 18px;
+}
+
+button {
+  padding: 10px 15px;
+  background-color: var(--btn-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: #e67333;
+}
+
+.theme-toggle {
+  padding: 8px 12px;
+  background-color: var(--btn-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#frequency, #q-factor {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+#spectrum-canvas {
+  width: 100%;
+  height: 150px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-color);
+}
+
+.timer-section {
+  display: flex;
+  justify-content: space-between; /* Разводит элементы по краям */
+  align-items: center; /* Выравнивает по вертикали (если нужно) */
+  gap: 10px; /* Расстояние между элементами (опционально) */
+}
+
+.timer-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px; /* Отступ между полями и кнопкой */
+}
+
+.timer-input {
+  width: 60px;
+  padding: 5px;
+  text-align: center;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2 Newton 0px;
+}
+
+.title {
+  font-size: 1.5em;
+  margin: 0;
+}
+
+#low-exc,
+#high-exc {
+  opacity: 0;
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="container">
+    <div class="header-container">
+      <h1 class="title">Терапия тиннитуса методом звукового воздействия</h1>
+      <button class="theme-toggle" id="theme-toggle">Переключить тему</button>
+    </div>
+
+    <div class="volume-control">
+      <input type="range" id="volume" min="0" max="1" value="0.25" step="0.01">
+    </div>
+
+    <div class="section">
+      <h2>Настройка частоты:</h2>
+      <p>Включите звук кнопкой. Подстройте звук под шум в ушах с помощью ползунка</p>
+      <input type="range" id="frequency" min="0" max="22000" value="1000" step="1">
+      <div class="value-display">Текущая частота: <span id="freq-value">1000</span> Гц</div>
+      <button id="toggle-sound">Включить звук</button>
+    </div>
+
+    <div class="section">
+      <h2>Настройка спектра:</h2>
+      <p>Введите время на таймере и нажмите на знак часов<strong><span id="low-exc"></span></strong><strong><span id="high-exc"></span></strong>.</p>
+      <input type="range" id="q-factor" min="0" max="100" value="100" step="1">
+      <div class="value-display">Q-фактор: <span id="q-value">100</span></div>
+      <div class="timer-section">
+        <button id="toggle-band-btn">Включить спектр</button>
+        <div class="timer-controls">
+          <input type="number" id="hours" class="timer-input" min="0" max="23" value="0" placeholder="ЧЧ">
+          <span>:</span>
+          <input type="number" id="minutes" class="timer-input" min="0" max="59" value="1" placeholder="ММ">
+          <button id="timer-control-btn">⏱️</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>График спектра звука (0–22000 Гц)</h2>
+      <canvas id="spectrum-canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+const frequencySlider = document.getElementById('frequency');
+const freqValueDisplay = document.getElementById('freq-value');
+const lowExcDisplay = document.getElementById('low-exc');
+const highExcDisplay = document.getElementById('high-exc');
+const qFactorSlider = document.getElementById('q-factor');
+const qValueDisplay = document.getElementById('q-value');
+const toggleSoundBtn = document.getElementById('toggle-sound');
+const toggleBandBtn = document.getElementById('toggle-band-btn');
+const timerControlBtn = document.getElementById('timer-control-btn');
+const volumeSlider = document.getElementById('volume');
+const themeToggleBtn = document.getElementById('theme-toggle');
+const canvas = document.getElementById('spectrum-canvas');
+
+const ctx = canvas.getContext('2d');
+const hoursInput = document.getElementById('hours');
+const minutesInput = document.getElementById('minutes');
+
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let oscillator = null;
+let bandFilter = null;
+let isSoundOn = false;
+let isBandOn = false;
+let timerInterval = null;
+let totalSeconds = 0;
+
+
+const EXPONENTIAL_SCALE = 0.00005;
+let qFactor = 100; // начальное значение в диапазоне 0–100
+
+function calculateGainAtFrequency(targetFreq, currentFreq, q) {
+  const diff = Math.abs(currentFreq - targetFreq);
+  const exponent = -EXPONENTIAL_SCALE * diff * q;
+  const gain = Math.exp(exponent);
+  return gain * 0.9;
+}
+
+function drawSpectrum(targetFreq, q) {
+  const width = canvas.width;
+  const height = canvas.height;
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.beginPath();
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--slider-color');
+  ctx.lineWidth = 2;
+
+  for (let x = 0; x < width; x++) {
+    const freq = (x / width) * 22000;
+    const gain = calculateGainAtFrequency(targetFreq, freq, q);
+    const y = gain * height; // перевёрнутый график
+
+    if (x === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+
+  ctx.stroke();
+}
+
+// Обработчики слайдеров (теперь с диапазоном 0–100 для Q‑фактора)
+frequencySlider.addEventListener('input', () => {
+  const freq = parseInt(frequencySlider.value);
+  freqValueDisplay.textContent = freq;
+  lowExcDisplay.textContent = freq - 50;
+  highExcDisplay.textContent = freq + 50;
+
+  if (isSoundOn && oscillator) {
+    oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+  }
+
+  if (isBandOn && bandFilter) {
+    bandFilter.filterNode.frequency.value = freq;
+    drawSpectrum(freq, qFactor);
+  }
+});
+
+qFactorSlider.addEventListener('input', () => {
+  qFactor = parseFloat(qFactorSlider.value);
+  qValueDisplay.textContent = qFactor.toFixed(0);
+
+  if (isBandOn) {
+    bandFilter.filterNode.Q.value = qFactor; // теперь напрямую используем значение 0–100
+    const targetFreq = parseInt(frequencySlider.value);
+    drawSpectrum(targetFreq, qFactor);
+  }
+});
+
+volumeSlider.addEventListener('input', () => {
+  const volume = parseFloat(volumeSlider.value);
+
+  if (oscillator && oscillator.gainNode) {
+    oscillator.gainNode.gain.value = volume;
+  }
+
+  if (bandFilter && bandFilter.gainNode) {
+    bandFilter.gainNode.gain.value = volume;
+  }
+});
+
+// Функции работы со звуком
+function playSingleTone() {
+  if (!oscillator) {
+    oscillator = audioContext.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(parseInt(frequencySlider.value), audioContext.currentTime);
+
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = parseFloat(volumeSlider.value);
+    oscillator.gainNode = gainNode;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+  } else {
+    oscillator.frequency.setValueAtTime(parseInt(frequencySlider.value), audioContext.currentTime);
+  }
+}
+
+function stopSingleTone() {
+  if (oscillator) {
+    oscillator.stop();
+    oscillator = null;
+  }
+}
+
+function playBandPass() {
+  if (bandFilter) {
+    if (bandFilter.noiseSource) {
+      bandFilter.noiseSource.stop();
+    }
+    bandFilter = null;
+  }
+
+  const noise = audioContext.createBufferSource();
+  const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 20, audioContext.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < buffer.length; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  noise.buffer = buffer;
+
+  const bandFilterNode = audioContext.createBiquadFilter();
+  bandFilterNode.type = 'notch';
+  bandFilterNode.frequency.value = parseInt(frequencySlider.value);
+  bandFilterNode.Q.value = qFactor; // используем Q в диапазоне 0–100
+
+  const gainNode = audioContext.createGain();
+  gainNode.gain.value = parseFloat(volumeSlider.value);
+
+  noise.connect(gainNode);
+  gainNode.connect(bandFilterNode);
+  bandFilterNode.connect(audioContext.destination);
+
+  noise.loop = true;
+  noise.start();
+
+  bandFilter = {
+    filterNode: bandFilterNode,
+    gainNode: gainNode,
+    noiseSource: noise
+  };
+
+  isBandOn = true;
+  toggleBandBtn.textContent = 'Выключить спектр';
+  drawSpectrum(parseInt(frequencySlider.value), qFactor);
+}
+
+function stopBandPass() {
+  if (bandFilter) {
+    if (bandFilter.noiseSource) {
+      bandFilter.noiseSource.stop();
+    }
+    bandFilter = null;
+  }
+  isBandOn = false;
+  toggleBandBtn.textContent = 'Включить спектр';
+}
+
+// Обработчики кнопок
+toggleSoundBtn.addEventListener('click', () => {
+  // Игнорируем нажатие, если включён спектр
+  if (isBandOn) {
+    console.log('Нельзя включить одиночный тон: активен спектр');
+    return;
+  }
+
+  if (!isSoundOn) {
+    playSingleTone();
+    toggleSoundBtn.textContent = 'Выключить звук';
+    isSoundOn = true;
+  } else {
+    stopSingleTone();
+    toggleSoundBtn.textContent = 'Включить звук';
+    isSoundOn = false;
+  }
+});
+
+toggleBandBtn.addEventListener('click', () => {
+  // Отключаем первый генератор при включении спектра
+  if (isSoundOn) {
+    stopSingleTone();
+    toggleSoundBtn.textContent = 'Включить звук';
+  }
+
+  if (!isBandOn) {
+    playBandPass();
+    frequencySlider.disabled = true;
+    frequencySlider.style.backgroundColor = 'var(--disabled-color)';
+  } else {
+    stopBandPass();
+    frequencySlider.disabled = false;
+    frequencySlider.style.backgroundColor = '';
+  }
+});
+
+themeToggleBtn.addEventListener('click', () => {
+  document.body.classList.toggle('theme-dark');
+});
+
+// Инициализация при загрузке
+window.addEventListener('load', () => {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  drawSpectrum(parseInt(frequencySlider.value), qFactor);
+});
+
+window.addEventListener('resize', () => {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  if (isBandOn) {
+    drawSpectrum(parseInt(frequencySlider.value), qFactor);
+  }
+});
+
+timerControlBtn.addEventListener('click', () => {
+  if (timerInterval) {
+    // Если таймер уже идёт — останавливаем его вручную
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+
+    if (isBandOn) {
+      stopBandPass();
+    }
+
+    resetTimerControls();
+    return;
+  }
+
+  // Если таймера нет — запускаем новый
+
+  // Отключаем первый генератор
+  if (isSoundOn) {
+    stopSingleTone();
+    toggleSoundBtn.textContent = 'Включить звук';
+  }
+
+  // Включаем второй генератор, если не включён
+  if (!isBandOn) {
+    playBandPass();
+    frequencySlider.disabled = true;
+    frequencySlider.style.backgroundColor = 'var(--disabled-color)';
+  }
+
+  // Меняем кнопку на «крестик»
+  timerControlBtn.textContent = '❌';
+
+
+  // Блокируем элементы управления
+  hoursInput.disabled = true;
+  minutesInput.disabled = true;
+  qFactorSlider.disabled = true;
+  qFactorSlider.style.backgroundColor = 'var(--disabled-color)';
+
+
+  // Считаем общее время в секундах
+  const hours = parseInt(hoursInput.value) || 0;
+  const minutes = parseInt(minutesInput.value) || 0;
+  totalSeconds = hours * 3600 + minutes * 60;
+
+
+  if (totalSeconds <= 0) {
+    resetTimerControls();
+    return;
+  }
+
+  const startQ = qFactor;
+  const step = startQ / totalSeconds; // шаг уменьшения Q за секунду
+
+  // Запускаем таймер
+  timerInterval = setInterval(() => {
+    totalSeconds--;
+
+    // Уменьшаем Q-фактор, не допуская отрицательных значений
+    qFactor = Math.max(0, qFactor - step);
+    qFactorSlider.value = qFactor;
+    qValueDisplay.textContent = qFactor.toFixed(0);
+
+
+    // Обновляем фильтр и график, если спектр активен
+    if (isBandOn) {
+      bandFilter.filterNode.Q.value = qFactor;
+      const targetFreq = parseInt(frequencySlider.value);
+      drawSpectrum(targetFreq, qFactor);
+    }
+
+    // Проверяем условие завершения
+    if (qFactor <= 0 || totalSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      if (isBandOn) {
+        stopBandPass();
+      }
+
+      resetTimerControls();
+    }
+  }, 1000);
+});
+
+// Функция для сброса состояния элементов управления таймером
+function resetTimerControls() {
+  hoursInput.disabled = false;
+  minutesInput.disabled = false;
+  timerControlBtn.textContent = '⏱️';
+  qFactorSlider.disabled = false;
+  qFactorSlider.style.backgroundColor = '';
+  frequencySlider.disabled = false;  // <-- ВАЖНОЕ ИЗМЕНЕНИЕ: разблокируем ползунок частоты
+  frequencySlider.style.backgroundColor = ''; // <-- Сбрасываем фон
+}
+
+// Обработчики для разблокировки при изменении таймера
+hoursInput.addEventListener('input', () => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    resetTimerControls();
+  }
+});
+
+minutesInput.addEventListener('input', () => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    resetTimerControls();
+  }
+});
+
+// Инициализация размеров canvas при загрузке и resize
+function initCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  if (isBandOn) {
+    drawSpectrum(parseInt(frequencySlider.value), qFactor);
+  }
+}
+
+window.addEventListener('load', initCanvas);
+window.addEventListener('resize', initCanvas);
+
+// Первоначальная отрисовка спектра
+drawSpectrum(parseInt(frequencySlider.value), qFactor);
+</script>
+</body>
+</html>
